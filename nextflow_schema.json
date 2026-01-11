@@ -576,7 +576,7 @@
                 },
                 "DEG_options": {
                     "type": "object",
-                    "fa_icon": "fas fa-pie-chart",
+                    "fa_icon": "fas fa-chart-pie",
                     "description": "Options for DEG analysis.",
                     "properties": {
                         "deg_formula": {
