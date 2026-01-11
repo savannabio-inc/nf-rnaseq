@@ -559,6 +559,32 @@
                     "fa_icon": "fas fa-dolly",
                     "default": true
                 },
+                "PCA_options": {
+                    "type": "object",
+                    "fa_icon": "fas fa-scatterplot",
+                    "description": "Options for PCA analysis.",
+                    "properties": {
+                        "pca_color": {
+                            "type": "string",
+                            "description": "Metadata column name for specifying the colors of the PCA plot."
+                        },
+                        "pca_shape": {
+                            "type": "string",
+                            "description": "Metadata column name for specifying the shapes of the PCA plot."
+                        }
+                    }
+                },
+                "DEG_options": {
+                    "type": "object",
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Options for DEG analysis.",
+                    "properties": {
+                        "deg_formula": {
+                            "type": "string",
+                            "description": "Formula for DEG analysis."
+                        }
+                    }
+                },
                 "rseqc_modules": {
                     "type": "string",
                     "default": "bam_stat,inner_distance,infer_experiment,junction_annotation,junction_saturation,read_distribution,read_duplication",
