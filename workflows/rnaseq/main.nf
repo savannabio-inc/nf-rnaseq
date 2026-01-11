@@ -266,7 +266,8 @@ workflow RNASEQ {
             DESEQ2_QC_STAR_SALMON (
                 QUANTIFY_STAR_SALMON.out.counts_gene_length_scaled.map { it[1] },
                 ch_pca_header_multiqc,
-                ch_clustering_header_multiqc
+                ch_clustering_header_multiqc,
+                ch_samplesheet
             )
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_STAR_SALMON.out.pca_multiqc.collect())
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_STAR_SALMON.out.dists_multiqc.collect())
@@ -301,7 +302,8 @@ workflow RNASEQ {
             DESEQ2_QC_RSEM (
                 QUANTIFY_RSEM.out.merged_counts_gene,
                 ch_pca_header_multiqc,
-                ch_clustering_header_multiqc
+                ch_clustering_header_multiqc,
+                ch_samplesheet
             )
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_RSEM.out.pca_multiqc.collect())
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_RSEM.out.dists_multiqc.collect())
@@ -683,7 +685,8 @@ workflow RNASEQ {
             DESEQ2_QC_PSEUDO (
                 ch_counts_gene_length_scaled.map { it[1] },
                 ch_pca_header_multiqc,
-                ch_clustering_header_multiqc
+                ch_clustering_header_multiqc,
+                ch_samplesheet
             )
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_PSEUDO.out.pca_multiqc.collect())
             ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_PSEUDO.out.dists_multiqc.collect())

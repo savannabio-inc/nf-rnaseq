@@ -12,6 +12,7 @@ process DESEQ2_QC {
     path counts
     path pca_header_multiqc
     path clustering_header_multiqc
+    path samplesheet
 
     output:
     path "*.pdf"                , optional:true, emit: pdf
@@ -22,6 +23,8 @@ process DESEQ2_QC {
     path "*sample.dists_mqc.tsv", optional:true, emit: dists_multiqc
     path "*.log"                , optional:true, emit: log
     path "size_factors"         , optional:true, emit: size_factors
+    path "*deg_results.txt"     , optional:true, emit: deg_results
+    path "*deg_summary.txt"     , optional:true, emit: deg_summary
     path "versions.yml"         , emit: versions
 
     when:
@@ -32,6 +35,10 @@ process DESEQ2_QC {
     def args2 = task.ext.args2 ?: ''
     def label_lower = args2.toLowerCase()
     def label_upper = args2.toUpperCase()
+    def pca_color = task.ext.pca_color ? "--pca_color ${task.ext.pca_color}" : ''
+    def pca_shape = task.ext.pca_shape ? "--pca_shape ${task.ext.pca_shape}" : ''
+    def deg_formula = task.ext.deg_formula ? "--deg_formula \"${task.ext.deg_formula}\"" : ''
+    def metadata_arg = "--metadata $samplesheet"
     prefix = task.ext.prefix ?: "deseq2"
     """
     deseq2_qc.r \\
@@ -39,6 +46,10 @@ process DESEQ2_QC {
         --outdir ./ \\
         --cores $task.cpus \\
         --outprefix $prefix \\
+        $metadata_arg \\
+        $pca_color \\
+        $pca_shape \\
+        $deg_formula \\
         $args
 
     if [ -f "R_sessionInfo.log" ]; then
@@ -77,6 +88,11 @@ process DESEQ2_QC {
     do
         touch size_factors/\${i}.size_factors.RData
     done
+
+    if [ ! -z "${task.ext.deg_formula}" ]; then
+        touch ${prefix}.deg_results.txt
+        touch ${prefix}.deg_summary.txt
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
