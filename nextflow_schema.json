@@ -561,7 +561,7 @@
                 },
                 "PCA_options": {
                     "type": "object",
-                    "fa_icon": "fas fa-scatterplot",
+                    "fa_icon": "fas fa-palette",
                     "description": "Options for PCA analysis.",
                     "properties": {
                         "pca_color": {
@@ -576,7 +576,7 @@
                 },
                 "DEG_options": {
                     "type": "object",
-                    "fa_icon": "fas fa-chart-pie",
+                    "fa_icon": "fas fa-pie-chart",
                     "description": "Options for DEG analysis.",
                     "properties": {
                         "deg_formula": {
