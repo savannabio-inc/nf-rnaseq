@@ -111,7 +111,14 @@ if (!is.null(opt$metadata)) {
     if (!file.exists(metadata_path)) {
         stop(paste("Metadata file not found:", opt$metadata), call.=FALSE)
     }
-    metadata <- read.delim(file=metadata_path, header=TRUE, row.names=NULL, check.names=FALSE)
+    # Detect file type and read accordingly
+    file_ext <- tolower(tools::file_ext(metadata_path))
+    if (file_ext == "csv") {
+        metadata <- read.csv(file=metadata_path, header=TRUE, row.names=NULL, check.names=FALSE, stringsAsFactors=FALSE)
+    } else {
+        # Default to tab-separated (TSV)
+        metadata <- read.delim(file=metadata_path, header=TRUE, row.names=NULL, check.names=FALSE, stringsAsFactors=FALSE)
+    }
     # Try to find sample column (could be "sample", "Sample", or first column)
     sample_col <- NULL
     if ("sample" %in% colnames(metadata)) {
@@ -132,6 +139,20 @@ if (!is.null(opt$metadata)) {
         # Add row names to coldata for matching
         coldata$rowname_backup <- rownames(coldata)
         metadata_to_merge$rowname_backup <- metadata_to_merge[,sample_col]
+
+        # Check for sample name matching before merge
+        samples_in_coldata <- rownames(coldata)
+        samples_in_metadata <- metadata_to_merge$rowname_backup
+        matched_samples <- sum(samples_in_coldata %in% samples_in_metadata)
+        if (matched_samples == 0) {
+            warning(paste("No matching sample names found between count file and metadata.",
+                         "Count file samples:", paste(head(samples_in_coldata, 5), collapse=", "),
+                         "Metadata samples:", paste(head(samples_in_metadata, 5), collapse=", "),
+                         "This may cause metadata columns to be missing."), call.=FALSE)
+        } else if (matched_samples < length(samples_in_coldata)) {
+            warning(paste("Only", matched_samples, "out of", length(samples_in_coldata),
+                         "samples matched between count file and metadata."), call.=FALSE)
+        }
 
         # Merge, keeping all rows from coldata
         coldata <- merge(coldata, metadata_to_merge[,c("rowname_backup", metadata_cols_to_add), drop=FALSE],

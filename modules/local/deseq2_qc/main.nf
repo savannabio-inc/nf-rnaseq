@@ -35,8 +35,8 @@ process DESEQ2_QC {
     def args2 = task.ext.args2 ?: ''
     def label_lower = args2.toLowerCase()
     def label_upper = args2.toUpperCase()
-    def pca_color = task.ext.pca_color ? "--pca_color ${task.ext.pca_color}" : ''
-    def pca_shape = task.ext.pca_shape ? "--pca_shape ${task.ext.pca_shape}" : ''
+    def pca_color = task.ext.pca_color ? "--pca_color ${task.ext.pca_color.toString().trim()}" : ''
+    def pca_shape = task.ext.pca_shape ? "--pca_shape ${task.ext.pca_shape.toString().trim()}" : ''
     def deg_formula = task.ext.deg_formula ? "--deg_formula \"${task.ext.deg_formula}\"" : ''
     def metadata_arg = "--metadata $samplesheet"
     prefix = task.ext.prefix ?: "deseq2"
