@@ -12,6 +12,7 @@ nextflow_process {
                 input[0] = file(params.pipelines_testdata_base_path + "deseq2qc/countFile.tsv", checkIfExists: true)
                 input[1] = file(params.pipelines_testdata_base_path + "deseq2qc/deseq2_pca_header.txt", checkIfExists: true)
                 input[2] = file(params.pipelines_testdata_base_path + "deseq2qc/deseq2_clustering_header.txt", checkIfExists: true)
+                input[3] = file(params.pipelines_testdata_base_path + "samplesheet/v3.10/samplesheet_test.csv", checkIfExists: true)
                 """
             }
         }
@@ -43,6 +44,7 @@ nextflow_process {
                 input[0] = file(params.pipelines_testdata_base_path + "deseq2qc/countFile.tsv", checkIfExists: true)
                 input[1] = file(params.pipelines_testdata_base_path + "deseq2qc/deseq2_pca_header.txt", checkIfExists: true)
                 input[2] = file(params.pipelines_testdata_base_path + "deseq2qc/deseq2_clustering_header.txt", checkIfExists: true)
+                input[3] = file(params.pipelines_testdata_base_path + "samplesheet/v3.10/samplesheet_test.csv", checkIfExists: true)
                 """
             }
         }
