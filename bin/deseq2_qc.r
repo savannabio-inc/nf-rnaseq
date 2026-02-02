@@ -136,39 +136,114 @@ if (!is.null(opt$metadata)) {
         metadata_cols_to_add <- setdiff(colnames(metadata), sample_col)
         metadata_to_merge <- metadata[, c(sample_col, metadata_cols_to_add), drop=FALSE]
 
-        # Add row names to coldata for matching
-        coldata$rowname_backup <- rownames(coldata)
-        metadata_to_merge$rowname_backup <- metadata_to_merge[,sample_col]
+        # Normalize sample names for better matching
+        # Function to normalize sample names: remove X prefix, normalize separators
+        normalize_sample_name <- function(name) {
+            # Remove leading X if present
+            name <- sub("^X", "", name)
+            # Normalize separators: replace dots with dashes
+            name <- gsub("[.]", "-", name)
+            return(name)
+        }
 
-        # Check for sample name matching before merge
+        # Normalize sample names in both count file and metadata
         samples_in_coldata <- rownames(coldata)
-        samples_in_metadata <- metadata_to_merge$rowname_backup
-        matched_samples <- sum(samples_in_coldata %in% samples_in_metadata)
+        samples_in_metadata <- metadata_to_merge[,sample_col]
+
+        # Create normalized versions for matching
+        coldata_normalized <- normalize_sample_name(samples_in_coldata)
+        metadata_normalized <- normalize_sample_name(samples_in_metadata)
+
+        # Create mapping from normalized to original names for metadata
+        metadata_normalized_map <- setNames(samples_in_metadata, metadata_normalized)
+
+        # Try to match samples using normalized names
+        matched_indices <- match(coldata_normalized, metadata_normalized)
+        matched_samples <- sum(!is.na(matched_indices))
+
         if (matched_samples == 0) {
             warning(paste("No matching sample names found between count file and metadata.",
                          "Count file samples:", paste(head(samples_in_coldata, 5), collapse=", "),
                          "Metadata samples:", paste(head(samples_in_metadata, 5), collapse=", "),
-                         "This may cause metadata columns to be missing."), call.=FALSE)
+                         "Attempting normalized matching..."), call.=FALSE)
+            # Try exact match as fallback
+            matched_indices <- match(samples_in_coldata, samples_in_metadata)
+            matched_samples <- sum(!is.na(matched_indices))
+        }
+
+        if (matched_samples == 0) {
+            stop(paste("Could not match any sample names between count file and metadata.",
+                      "Count file samples:", paste(head(samples_in_coldata, 5), collapse=", "),
+                      "Normalized count file samples:", paste(head(coldata_normalized, 5), collapse=", "),
+                      "Metadata samples:", paste(head(samples_in_metadata, 5), collapse=", "),
+                      "Normalized metadata samples:", paste(head(metadata_normalized, 5), collapse=", "),
+                      "Please ensure sample names match (or can be matched after normalization)."), call.=FALSE)
         } else if (matched_samples < length(samples_in_coldata)) {
             warning(paste("Only", matched_samples, "out of", length(samples_in_coldata),
                          "samples matched between count file and metadata."), call.=FALSE)
         }
 
-        # Merge, keeping all rows from coldata
-        coldata <- merge(coldata, metadata_to_merge[,c("rowname_backup", metadata_cols_to_add), drop=FALSE],
-                        by.x="rowname_backup", by.y="rowname_backup", all.x=TRUE, sort=FALSE)
+        # Create a data frame for merging using normalized matching
+        # Map count file samples to metadata samples
+        coldata$rowname_backup <- rownames(coldata)
+        coldata$metadata_match <- NA
 
-        # Restore row names and remove backup column
+        # For each count file sample, find matching metadata sample
+        for (i in seq_along(coldata_normalized)) {
+            match_idx <- which(metadata_normalized == coldata_normalized[i])
+            if (length(match_idx) > 0) {
+                coldata$metadata_match[i] <- samples_in_metadata[match_idx[1]]
+            }
+        }
+
+        # Merge metadata using the matched sample names
+        metadata_to_merge$rowname_backup <- metadata_to_merge[,sample_col]
+        coldata <- merge(coldata, metadata_to_merge[,c("rowname_backup", metadata_cols_to_add), drop=FALSE],
+                        by.x="metadata_match", by.y="rowname_backup", all.x=TRUE, sort=FALSE)
+
+        # Restore row names and remove backup columns
         rownames(coldata) <- coldata$rowname_backup
         coldata$rowname_backup <- NULL
+        coldata$metadata_match <- NULL
 
         # Convert character columns to factors (needed for DESeq2 formulas)
+        # Handle NA values in columns that will be used in formulas
         if (!is.null(opt$deg_formula)) {
+            # Get variables from formula
+            formula_vars <- all.vars(as.formula(opt$deg_formula))
+
+            for (col in colnames(coldata)) {
+                if (col != "sample") {
+                    # Check if this column is used in the formula
+                    if (col %in% formula_vars) {
+                        # For formula columns, remove rows with NA values or replace with a default
+                        na_count <- sum(is.na(coldata[,col]))
+                        if (na_count > 0) {
+                            warning(paste("Found", na_count, "NA values in formula column '", col,
+                                         "'. Removing samples with NA values from analysis: ", paste(head(coldata[is.na(coldata[,col]),col], 5), collapse=", ")), call.=FALSE)
+                            # Remove rows with NA in formula columns
+                            coldata <- coldata[!is.na(coldata[,col]), , drop=FALSE]
+                        }
+                    }
+
+                    # Convert character to factor
+                    if (is.character(coldata[,col])) {
+                        coldata[,col] <- as.factor(coldata[,col])
+                    }
+                }
+            }
+
+            # Update samples.vec to match filtered coldata
+            samples.vec <- rownames(coldata)
+        } else {
+            # Even without formula, convert character columns to factors for consistency
             for (col in colnames(coldata)) {
                 if (col != "sample" && is.character(coldata[,col])) {
                     coldata[,col] <- as.factor(coldata[,col])
                 }
             }
+            # Update samples.vec to match coldata (in case some samples didn't match)
+            samples.vec <- rownames(coldata)
         }
     } else {
         warning(paste("Could not find sample column in metadata file. Expected 'sample' or 'Sample' or using first column."), call.=FALSE)
@@ -189,6 +264,12 @@ if (!is.null(opt$metadata)) {
 
 DDSFile <- paste(opt$outprefix,".dds.RData",sep="")
 
+# Ensure counts match the samples in coldata (after filtering and matching)
+# Update samples.vec to match coldata rownames if metadata was provided
+if (exists("coldata") && nrow(coldata) > 0 && !is.null(opt$metadata)) {
+    samples.vec <- rownames(coldata)
+}
+
 counts  <- count.table[,samples.vec,drop=FALSE]
 
 # Determine design formula
@@ -202,6 +283,30 @@ if (!is.null(opt$deg_formula)) {
         stop(paste("Variables in DEG formula not found in metadata:", paste(missing_vars, collapse=", "),
                    ". Available columns:", paste(colnames(coldata), collapse=", ")), call.=FALSE)
     }
+
+    # Final check: ensure no NA values in any formula variable
+    for (var in formula_vars) {
+        if (var %in% colnames(coldata)) {
+            na_count <- sum(is.na(coldata[,var]))
+            if (na_count > 0) {
+                stop(paste("Found", na_count, "NA values in formula variable '", var,
+                          "'. All formula variables must have complete data. Please check your metadata file."), call.=FALSE)
+            }
+        }
+    }
+
+    # Ensure counts and coldata are aligned
+    if (nrow(coldata) != ncol(counts)) {
+        stop(paste("Mismatch between number of samples in counts (", ncol(counts),
+                  ") and coldata (", nrow(coldata), "). Please check sample name matching."), call.=FALSE)
+    }
+
+    # Ensure column names of counts match row names of coldata
+    if (!all(colnames(counts) == rownames(coldata))) {
+        # Reorder counts to match coldata
+        counts <- counts[, rownames(coldata), drop=FALSE]
+    }
+
     dds <- DESeqDataSetFromMatrix(countData=round(counts), colData=coldata, design=design_formula)
 } else {
     # `design=~1` creates intercept-only model, equivalent to setting `blind=TRUE` for transformation.
