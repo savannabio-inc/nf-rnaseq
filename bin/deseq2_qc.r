@@ -206,7 +206,7 @@ if (!is.null(opt$metadata)) {
         coldata$rowname_backup <- NULL
         coldata$metadata_match <- NULL
 
-        # Convert character columns to factors (needed for DESeq2 formulas)
+        # Convert all columns to factors except 'sample' (needed for DESeq2 formulas)
         # Handle NA values in columns that will be used in formulas
         if (!is.null(opt$deg_formula)) {
             # Get variables from formula
@@ -216,7 +216,7 @@ if (!is.null(opt$metadata)) {
                 if (col != "sample") {
                     # Check if this column is used in the formula
                     if (col %in% formula_vars) {
-                        # For formula columns, remove rows with NA values or replace with a default
+                        # For formula columns, remove rows with NA values
                         na_count <- sum(is.na(coldata[,col]))
                         if (na_count > 0) {
                             warning(paste("Found", na_count, "NA values in formula column '", col,
@@ -226,19 +226,15 @@ if (!is.null(opt$metadata)) {
                         }
                     }
 
-                    # Convert character to factor
-                    if (is.character(coldata[,col])) {
-                        coldata[,col] <- as.factor(coldata[,col])
-                    }
+                    coldata[,col] <- as.factor(coldata[,col])
                 }
             }
 
             # Update samples.vec to match filtered coldata
             samples.vec <- rownames(coldata)
         } else {
-            # Even without formula, convert character columns to factors for consistency
             for (col in colnames(coldata)) {
-                if (col != "sample" && is.character(coldata[,col])) {
+                if (col != "sample") {
                     coldata[,col] <- as.factor(coldata[,col])
                 }
             }
