@@ -1,5 +1,4 @@
 process DESEQ2_QC {
-    tag "generating PCA and DEGs"
     label "process_medium"
 
     // (Bio)conda packages have intentionally not been pinned to a specific version
