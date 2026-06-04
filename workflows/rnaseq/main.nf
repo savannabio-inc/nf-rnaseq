@@ -7,9 +7,6 @@
 //
 // MODULE: Loaded from modules/local/
 //
-include { DESEQ2_QC as DESEQ2_QC_STAR_SALMON } from '../../modules/local/deseq2_qc'
-include { DESEQ2_QC as DESEQ2_QC_RSEM        } from '../../modules/local/deseq2_qc'
-include { DESEQ2_QC as DESEQ2_QC_PSEUDO      } from '../../modules/local/deseq2_qc'
 include { MULTIQC_CUSTOM_BIOTYPE             } from '../../modules/local/multiqc_custom_biotype'
 
 //
@@ -21,6 +18,7 @@ include { BAM_DEDUP_UMI as BAM_DEDUP_UMI_STAR   } from '../../subworkflows/nf-co
 include { BAM_DEDUP_UMI as BAM_DEDUP_UMI_HISAT2 } from '../../subworkflows/nf-core/bam_dedup_umi'
 
 include { checkSamplesAfterGrouping      } from '../../subworkflows/local/utils_nfcore_rnaseq_pipeline'
+include { getInputSamplesList            } from '../../subworkflows/local/utils_nfcore_rnaseq_pipeline'
 include { multiqcTsvFromList             } from '../../subworkflows/nf-core/fastq_qc_trim_filter_setstrandedness'
 include { getStarPercentMapped           } from '../../subworkflows/local/utils_nfcore_rnaseq_pipeline'
 include { biotypeInGtf                   } from '../../subworkflows/local/utils_nfcore_rnaseq_pipeline'
@@ -51,7 +49,6 @@ include { BEDTOOLS_GENOMECOV as BEDTOOLS_GENOMECOV_REV         } from '../../mod
 // SUBWORKFLOW: Consisting entirely of nf-core/modules
 //
 include { paramsSummaryMap                 } from 'plugin/nf-schema'
-include { samplesheetToList                } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc             } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML           } from '../../subworkflows/nf-core/utils_nfcore_pipeline'
 include { FASTQ_ALIGN_HISAT2               } from '../../subworkflows/nf-core/fastq_align_hisat2'
@@ -70,11 +67,9 @@ include { FASTQ_QC_TRIM_FILTER_SETSTRANDEDNESS              } from '../../subwor
 */
 
 // Header files for MultiQC
-ch_pca_header_multiqc           = file("$projectDir/workflows/rnaseq/assets/multiqc/deseq2_pca_header.txt", checkIfExists: true)
 sample_status_header_multiqc    = file("$projectDir/workflows/rnaseq/assets/multiqc/sample_status_header.txt", checkIfExists: true)
-ch_clustering_header_multiqc    = file("$projectDir/workflows/rnaseq/assets/multiqc/deseq2_clustering_header.txt", checkIfExists: true)
 ch_biotypes_header_multiqc      = file("$projectDir/workflows/rnaseq/assets/multiqc/biotypes_header.txt", checkIfExists: true)
-ch_dummy_file                   = ch_pca_header_multiqc
+ch_dummy_file                   = sample_status_header_multiqc
 
 workflow RNASEQ {
 
@@ -106,10 +101,10 @@ workflow RNASEQ {
     ch_strand_status = Channel.empty()
 
     //
-    // Create channel from input file provided through params.input
+    // Create channel from samplesheet (--input) or direct FASTQ parameters
     //
     Channel
-        .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
+        .fromList(getInputSamplesList(projectDir))
         .map {
             meta, fastq_1, fastq_2 ->
                 if (!fastq_2) {
@@ -261,18 +256,6 @@ workflow RNASEQ {
             params.kallisto_quant_fraglen_sd
         )
         ch_versions = ch_versions.mix(QUANTIFY_STAR_SALMON.out.versions)
-
-        if (!params.skip_qc & !params.skip_deseq2_qc) {
-            DESEQ2_QC_STAR_SALMON (
-                QUANTIFY_STAR_SALMON.out.counts_gene_length_scaled.map { it[1] },
-                ch_pca_header_multiqc,
-                ch_clustering_header_multiqc,
-                ch_samplesheet
-            )
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_STAR_SALMON.out.pca_multiqc.collect())
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_STAR_SALMON.out.dists_multiqc.collect())
-            ch_versions = ch_versions.mix(DESEQ2_QC_STAR_SALMON.out.versions)
-        }
     }
 
     //
@@ -297,18 +280,6 @@ workflow RNASEQ {
             ch_genome_bam_index = QUANTIFY_RSEM.out.csi
         }
         ch_versions = ch_versions.mix(QUANTIFY_RSEM.out.versions)
-
-        if (!params.skip_qc & !params.skip_deseq2_qc) {
-            DESEQ2_QC_RSEM (
-                QUANTIFY_RSEM.out.merged_counts_gene,
-                ch_pca_header_multiqc,
-                ch_clustering_header_multiqc,
-                ch_samplesheet
-            )
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_RSEM.out.pca_multiqc.collect())
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_RSEM.out.dists_multiqc.collect())
-            ch_versions = ch_versions.mix(DESEQ2_QC_RSEM.out.versions)
-        }
     }
 
     //
@@ -680,18 +651,6 @@ workflow RNASEQ {
         ch_counts_gene_length_scaled = QUANTIFY_PSEUDO_ALIGNMENT.out.counts_gene_length_scaled
         ch_multiqc_files = ch_multiqc_files.mix(QUANTIFY_PSEUDO_ALIGNMENT.out.multiqc.collect{it[1]})
         ch_versions = ch_versions.mix(QUANTIFY_PSEUDO_ALIGNMENT.out.versions)
-
-        if (!params.skip_qc & !params.skip_deseq2_qc) {
-            DESEQ2_QC_PSEUDO (
-                ch_counts_gene_length_scaled.map { it[1] },
-                ch_pca_header_multiqc,
-                ch_clustering_header_multiqc,
-                ch_samplesheet
-            )
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_PSEUDO.out.pca_multiqc.collect())
-            ch_multiqc_files = ch_multiqc_files.mix(DESEQ2_QC_PSEUDO.out.dists_multiqc.collect())
-            ch_versions = ch_versions.mix(DESEQ2_QC_PSEUDO.out.versions)
-        }
     }
 
     //

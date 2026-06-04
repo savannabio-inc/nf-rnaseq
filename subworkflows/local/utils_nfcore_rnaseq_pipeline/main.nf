@@ -19,6 +19,7 @@ include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NEXTFLOW_PIPELINE   } from '../../nf-core/utils_nextflow_pipeline'
 include { logColours                } from '../../nf-core/utils_nfcore_pipeline'
 include { calculateStrandedness     } from '../../nf-core/fastq_qc_trim_filter_setstrandedness'
+include { samplesheetToList         } from 'plugin/nf-schema'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -174,9 +175,104 @@ def checkSamplesAfterGrouping(input) {
 }
 
 //
+// Validate direct FASTQ parameters (--fastq_1, optional --fastq_2, --sample)
+//
+def validateDirectFastqInput() {
+    def fastq_pattern = ~/^\S+\.f(ast)?q\.gz$/
+    def sample_pattern = ~/^\S+$/
+    def strandedness_values = ['forward', 'reverse', 'unstranded', 'auto']
+
+    if (!params.sample?.trim()) {
+        error("Direct FASTQ input requires --sample")
+    }
+    if (!(params.sample ==~ sample_pattern)) {
+        error("Sample name cannot contain spaces: '${params.sample}'")
+    }
+    if (!params.fastq_1?.trim()) {
+        error("Direct FASTQ input requires --fastq_1")
+    }
+    if (!(params.fastq_1 ==~ fastq_pattern)) {
+        error("FastQ file for reads 1 must have extension '.fq.gz' or '.fastq.gz': '${params.fastq_1}'")
+    }
+    file(params.fastq_1, checkIfExists: true)
+
+    if (params.fastq_2?.trim()) {
+        if (!(params.fastq_2 ==~ fastq_pattern)) {
+            error("FastQ file for reads 2 must have extension '.fq.gz' or '.fastq.gz': '${params.fastq_2}'")
+        }
+        file(params.fastq_2, checkIfExists: true)
+    }
+
+    def strandedness = params.input_strandedness ?: 'auto'
+    if (!(strandedness in strandedness_values)) {
+        error("Strandedness must be one of 'auto', 'forward', 'reverse' or 'unstranded': '${strandedness}'")
+    }
+}
+
+//
+// Ensure exactly one input mode: samplesheet or direct FASTQ parameters
+//
+def validateInputModes() {
+    def has_direct = params.fastq_1 as boolean
+    def has_input = params.input as boolean
+
+    if (has_direct) {
+        if (has_input) {
+            error("Use either --input or --fastq_1/--sample, not both")
+        }
+        validateDirectFastqInput()
+    }
+    else if (params.fastq_2 || params.sample) {
+        def msg = "Direct FASTQ input requires --fastq_1 and --sample"
+        if (params.fastq_2 && !params.fastq_1) {
+            msg += " (--fastq_2 cannot be used without --fastq_1)"
+        }
+        error(msg)
+    }
+    else if (!has_input) {
+        error("Provide --input (samplesheet) or --fastq_1 and --sample")
+    }
+}
+
+//
+// Build samplesheet row list for Channel.fromList (samplesheet CSV or direct FASTQ params)
+//
+def getInputSamplesList(project_dir) {
+    def has_direct = params.fastq_1 as boolean
+    def has_input = params.input as boolean
+
+    if (has_direct) {
+        if (has_input) {
+            error("Use either --input or --fastq_1/--sample, not both")
+        }
+        validateDirectFastqInput()
+        def meta = [
+            id: params.sample,
+            strandedness: params.input_strandedness ?: 'auto'
+        ]
+        def fastq_1 = file(params.fastq_1, checkIfExists: true)
+        def fastq_2 = params.fastq_2?.trim() ? file(params.fastq_2, checkIfExists: true) : null
+        return [[ meta, fastq_1, fastq_2 ]]
+    }
+    if (params.fastq_2 || params.sample) {
+        def msg = "Direct FASTQ input requires --fastq_1 and --sample"
+        if (params.fastq_2 && !params.fastq_1) {
+            msg += " (--fastq_2 cannot be used without --fastq_1)"
+        }
+        error(msg)
+    }
+    if (!has_input) {
+        error("Provide --input (samplesheet) or --fastq_1 and --sample")
+    }
+    return samplesheetToList(params.input, "${project_dir}/assets/schema_input.json")
+}
+
+//
 // Check and validate pipeline parameters
 //
 def validateInputParameters() {
+
+    validateInputModes()
 
     genomeExistsError()
 

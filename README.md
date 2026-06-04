@@ -45,10 +45,9 @@
     2. [`Qualimap`](http://qualimap.bioinfo.cipf.es/)
     3. [`dupRadar`](https://bioconductor.org/packages/release/bioc/html/dupRadar.html)
     4. [`Preseq`](http://smithlabresearch.org/software/preseq/)
-    5. [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
-    6. [`Kraken2`](https://ccb.jhu.edu/software/kraken2/) -> [`Bracken`](https://ccb.jhu.edu/software/bracken/) on unaligned sequences; _optional_
+    5. [`Kraken2`](https://ccb.jhu.edu/software/kraken2/) -> [`Bracken`](https://ccb.jhu.edu/software/bracken/) on unaligned sequences; _optional_
 15. Pseudoalignment and quantification ([`Salmon`](https://combine-lab.github.io/salmon/) or ['Kallisto'](https://pachterlab.github.io/kallisto/); _optional_)
-16. Present QC for raw read, alignment, gene biotype, sample similarity, and strand-specificity checks ([`MultiQC`](http://multiqc.info/), [`R`](https://www.r-project.org/))
+16. Present QC for raw read, alignment, gene biotype, and strand-specificity checks ([`MultiQC`](http://multiqc.info/), [`R`](https://www.r-project.org/))
 
 > **Note**
 > The SRA download functionality has been removed from the pipeline (`>=3.2`) and ported to an independent workflow called [nf-core/fetchngs](https://nf-co.re/fetchngs). You can provide `--nf_core_pipeline rnaseq` when running nf-core/fetchngs to download and auto-create a samplesheet containing publicly available samples that can be accepted directly as input by this pipeline.
@@ -56,44 +55,216 @@
 > **Warning**
 > Quantification isn't performed if using `--aligner hisat2` due to the lack of an appropriate option to calculate accurate expression estimates from HISAT2 derived genomic alignments. However, you can use this route if you have a preference for the alignment, QC and other types of downstream analysis compatible with the output of HISAT2.
 
-## Usage
+## Quick start
+
+**Requirements:** [Nextflow](https://www.nextflow.io/) `>=24.04.2`, Java, and a container engine (`-profile docker` or `singularity` recommended) or Conda (`-profile conda`).
+
+Validate your install with the bundled test profile (downloads reference data and runs a small public dataset):
+
+```bash
+cd nf-rnaseq
+nextflow run main.nf -profile test,docker --outdir results_test
+```
+
+For day-to-day runs from this repository:
+
+```bash
+nextflow run /path/to/nf-rnaseq/main.nf \
+  -profile docker \
+  --outdir /path/to/results \
+  ...
+```
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+> New to Nextflow? See the [nf-core installation guide](https://nf-co.re/docs/usage/installation). Pass parameters on the CLI or via `-params-file`; custom `-c` config files cannot override pipeline parameters ([details](https://nf-co.re/docs/usage/configuration#custom-configuration-files)).
 
-First, prepare a samplesheet with your input data that looks as follows:
+## Usage
 
-**samplesheet.csv**:
+### Input options
+
+You must provide **either** a samplesheet **or** direct FASTQ parameters (not both).
+
+#### 1. Samplesheet (multiple samples)
+
+CSV with header `sample,fastq_1,fastq_2,strandedness`. Paths may be local or cloud (`s3://`, `gs://`, etc.). Repeat the same `sample` on multiple rows to merge technical replicates (lanes/runs).
 
 ```csv
 sample,fastq_1,fastq_2,strandedness
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz,auto
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz,auto
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz,auto
+CONTROL_REP1,/data/rep1_L1_R1.fastq.gz,/data/rep1_L1_R2.fastq.gz,auto
+CONTROL_REP1,/data/rep1_L2_R1.fastq.gz,/data/rep1_L2_R2.fastq.gz,auto
+TREATMENT_REP1,/data/treat_R1.fastq.gz,/data/treat_R2.fastq.gz,forward
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end). Rows with the same sample identifier are considered technical replicates and merged automatically. The strandedness refers to the library preparation and will be automatically inferred if set to `auto`.
-
-> **Warning:**
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those
-> provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_;
-> see [docs](https://nf-co.re/usage/configuration#custom-configuration-files).
-
-Now, you can run the pipeline using:
+Leave `fastq_2` empty for single-end libraries. Set `strandedness` to `forward`, `reverse`, `unstranded`, or `auto` (Salmon subsampling infers strandness when `auto`).
 
 ```bash
-nextflow run nf-core/rnaseq \
-    --input <SAMPLESHEET> \
-    --outdir <OUTDIR> \
-    --gtf <GTF> \
-    --fasta <GENOME FASTA> \
-    -profile <docker/singularity/.../institute>
+nextflow run main.nf \
+  -profile docker \
+  --input samplesheet.csv \
+  --fasta genome.fa \
+  --gtf genome.gtf \
+  --outdir results
 ```
 
-> [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
+Or use a pre-built [iGenomes](https://nf-co.re/usage/reference_genomes) reference:
 
-For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/rnaseq/usage) and the [parameter documentation](https://nf-co.re/rnaseq/parameters).
+```bash
+nextflow run main.nf \
+  -profile docker \
+  --input samplesheet.csv \
+  --genome GRCh38 \
+  --outdir results
+```
+
+#### 2. Direct FASTQ parameters (single sample)
+
+For one sample, pass FASTQs without creating a CSV. No samplesheet file is written at runtime.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--fastq_1` | Yes | Read 1 (`.fastq.gz` / `.fq.gz`) |
+| `--sample` | Yes | Sample ID (no spaces) |
+| `--fastq_2` | No | Read 2 for paired-end; omit for single-end |
+| `--input_strandedness` | No | Default `auto`; same as samplesheet `strandedness` |
+
+**Paired-end:**
+
+```bash
+nextflow run main.nf \
+  -profile docker \
+  --fastq_1 /data/sample_R1.fastq.gz \
+  --fastq_2 /data/sample_R2.fastq.gz \
+  --sample MY_SAMPLE \
+  --genome GRCh38 \
+  --outdir results
+```
+
+**Single-end:**
+
+```bash
+nextflow run main.nf \
+  -profile docker \
+  --fastq_1 /data/sample.fastq.gz \
+  --sample MY_SAMPLE \
+  --genome GRCh38 \
+  --outdir results
+```
+
+More detail: [docs/usage.md](docs/usage.md) (samplesheet rules, strandedness, trimming, aligners).
+
+### Reference genome
+
+Provide **one** of:
+
+- `--genome <ID>` — iGenomes bundle (e.g. `GRCh38`, `GRCm39`)
+- `--fasta` + `--gtf` (or `--gff`) — custom reference
+
+Optional: `--transcript_fasta`, pre-built indexes (`--star_index`, `--salmon_index`, …), `--save_reference` to reuse indexes on later runs.
+
+### Alignment and quantification routes
+
+| `--aligner` | Quantification | Notes |
+|-------------|----------------|-------|
+| `star_salmon` (default) | STAR → Salmon | Recommended default |
+| `star_rsem` | STAR → RSEM | |
+| `hisat2` | None | Alignment + QC only |
+
+Pseudoalignment-only (no genomic aligner): `--skip_alignment --pseudo_aligner salmon` or `kallisto`.
+
+### Profiles
+
+| Profile | Use case |
+|---------|----------|
+| `docker` | Local/server with Docker |
+| `singularity` | HPC / Apptainer |
+| `conda` / `mamba` | No containers |
+| `test` | CI smoke test (small dataset) |
+| `test_full` | Full test dataset |
+
+Combine profiles: `-profile docker,test`.
+
+### Useful flags
+
+| Flag | Effect |
+|------|--------|
+| `--skip_qc` | Skip most QC processes |
+| `--skip_trimming` | Input already trimmed |
+| `--skip_alignment` | Pseudoalignment only |
+| `--with_umi` | UMI library protocols |
+| `--remove_ribo_rna` | SortMeRNA rRNA removal (needs `--ribo_database_manifest`) |
+| `-resume` | Continue a failed run |
+
+Full parameter list: [nf-co.re/rnaseq/parameters](https://nf-co.re/rnaseq/parameters) or `nextflow run main.nf --help`.
+
+## Pipeline layout
+
+Entry point: [`main.nf`](main.nf) → [`workflows/rnaseq/main.nf`](workflows/rnaseq/main.nf).
+
+```
+main.nf
+├── PREPARE_GENOME          # indexes, filtered GTF, auxiliary references
+├── RNASEQ                  # QC → trim → align/quantify → QC reports
+└── PIPELINE_INITIALISATION / COMPLETION
+```
+
+Input is turned into a sample channel via `getInputSamplesList()` (samplesheet or `--fastq_1` / `--sample` / optional `--fastq_2`).
+
+## Modules and subworkflows
+
+Processes live under [`modules/`](modules/) (nf-core + local) and are composed in [`subworkflows/`](subworkflows/).
+
+### nf-core modules (`modules/nf-core/`)
+
+| Stage | Modules |
+|-------|---------|
+| Input / QC | `cat/fastq`, `fastqc`, `fastp`, `fq/lint`, `fq/subsample`, `umitools/*`, `umicollapse`, `trimgalore`, `bbmap/bbsplit`, `sortmerna` |
+| Alignment | `star/align`, `star/genomegenerate`, `hisat2/*`, `salmon/index`, `salmon/quant`, `rsem/*`, `kallisto/*` |
+| BAM processing | `samtools/*`, `picard/markduplicates`, `subread/featurecounts`, `stringtie/stringtie` |
+| Coverage | `bedtools/genomecov`, `ucsc/bedclip`, `ucsc/bedgraphtobigwig` |
+| QC | `rseqc/*`, `qualimap/rnaseq`, `dupradar`, `preseq/lcextrap`, `kraken2/kraken2`, `bracken/bracken` |
+| Pseudoalignment | `custom/tx2gene`, `tximeta/tximport`, `summarizedexperiment/summarizedexperiment` |
+| Reporting | `multiqc` |
+| Utilities | `gunzip`, `gffread`, `custom/getchromsizes`, `custom/catadditionalfasta`, `untar` |
+
+### Local modules (`modules/local/`)
+
+| Module | Role |
+|--------|------|
+| `gtf_filter` / `gtf2bed` | GTF cleanup and BED12 for QC |
+| `preprocess_transcripts_fasta_gencode` | GENCODE transcript FASTA handling |
+| `multiqc_custom_biotype` | Biotype breakdown for MultiQC |
+| `rsem_merge_counts` | Merge RSEM count matrices |
+| `star_align_igenomes` / `star_genomegenerate_igenomes` | STAR with iGenomes layout |
+
+### Subworkflows
+
+| Path | Purpose |
+|------|---------|
+| `subworkflows/local/prepare_genome` | Build or stage reference indexes |
+| `subworkflows/local/align_star` | STAR alignment workflow |
+| `subworkflows/local/quantify_rsem` | RSEM quantification |
+| `subworkflows/local/utils_nfcore_rnaseq_pipeline` | Init, validation, direct FASTQ input helpers |
+| `subworkflows/nf-core/fastq_qc_trim_filter_setstrandedness` | FASTQ QC, trim, rRNA/contaminant removal, auto-strand |
+| `subworkflows/nf-core/fastq_align_hisat2` | HISAT2 alignment |
+| `subworkflows/nf-core/fastq_fastqc_umitools_trimgalore` | Trim Galore branch |
+| `subworkflows/nf-core/fastq_fastqc_umitools_fastp` | fastp branch |
+| `subworkflows/nf-core/quantify_pseudo_alignment` | Salmon / Kallisto pseudoalignment |
+| `subworkflows/nf-core/bam_*` | Mark duplicates, RSeQC, UMI dedup, stats, bigWig |
+
+Module metadata (inputs/outputs): each `modules/**/meta.yml`.
+
+## Development and testing
+
+Unit tests use [nf-test](https://www.nf-test.com/) in a self-contained venv (Nextflow + nf-test installed locally; no Conda required):
+
+```bash
+./scripts/setup-test-venv.sh    # once
+./scripts/run-nf-tests.sh       # direct FASTQ input tests by default
+```
+
+See [docs/testing.md](docs/testing.md) for full test commands and environment variables.
+
+Upstream docs: [usage](https://nf-co.re/rnaseq/usage) · [output](https://nf-co.re/rnaseq/output) · [parameters](https://nf-co.re/rnaseq/parameters).
 
 ## Pipeline output
 

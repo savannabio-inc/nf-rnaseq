@@ -104,6 +104,7 @@ nextflow_function {
 
         when {
             params {
+                input                  = "samplesheet.csv"
                 fasta                  = "genome.fasta"
                 gtf                    = "genome.gtf"
                 gff                    = "genome.gff"

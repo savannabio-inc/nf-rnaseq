@@ -1,7 +1,7 @@
 {
     "Params: --skip_trimming": {
         "content": [
-            203,
+            201,
             {
                 "BBMAP_BBSPLIT": {
                     "bbmap": 39.1
@@ -20,14 +20,6 @@
                 },
                 "CUSTOM_TX2GENE": {
                     "python": "3.10.4"
-                },
-                "DESEQ2_QC_PSEUDO": {
-                    "r-base": "4.0.3",
-                    "bioconductor-deseq2": "1.28.0"
-                },
-                "DESEQ2_QC_STAR_SALMON": {
-                    "r-base": "4.0.3",
-                    "bioconductor-deseq2": "1.28.0"
                 },
                 "DUPRADAR": {
                     "bioconductor-dupradar": "1.32.0"
@@ -498,19 +490,6 @@
                 "salmon/WT_REP2/logs/salmon_quant.log",
                 "salmon/WT_REP2/quant.genes.sf",
                 "salmon/WT_REP2/quant.sf",
-                "salmon/deseq2_qc",
-                "salmon/deseq2_qc/R_sessionInfo.log",
-                "salmon/deseq2_qc/deseq2.dds.RData",
-                "salmon/deseq2_qc/deseq2.pca.vals.txt",
-                "salmon/deseq2_qc/deseq2.plots.pdf",
-                "salmon/deseq2_qc/deseq2.sample.dists.txt",
-                "salmon/deseq2_qc/size_factors",
-                "salmon/deseq2_qc/size_factors/RAP1_IAA_30M_REP1.txt",
-                "salmon/deseq2_qc/size_factors/RAP1_UNINDUCED_REP1.txt",
-                "salmon/deseq2_qc/size_factors/RAP1_UNINDUCED_REP2.txt",
-                "salmon/deseq2_qc/size_factors/WT_REP1.txt",
-                "salmon/deseq2_qc/size_factors/WT_REP2.txt",
-                "salmon/deseq2_qc/size_factors/deseq2.size_factors.RData",
                 "salmon/salmon.merged.gene_counts.SummarizedExperiment.rds",
                 "salmon/salmon.merged.gene_counts.tsv",
                 "salmon/salmon.merged.gene_counts_length_scaled.SummarizedExperiment.rds",
@@ -621,19 +600,6 @@
                 "star_salmon/bigwig/WT_REP1.reverse.bigWig",
                 "star_salmon/bigwig/WT_REP2.forward.bigWig",
                 "star_salmon/bigwig/WT_REP2.reverse.bigWig",
-                "star_salmon/deseq2_qc",
-                "star_salmon/deseq2_qc/R_sessionInfo.log",
-                "star_salmon/deseq2_qc/deseq2.dds.RData",
-                "star_salmon/deseq2_qc/deseq2.pca.vals.txt",
-                "star_salmon/deseq2_qc/deseq2.plots.pdf",
-                "star_salmon/deseq2_qc/deseq2.sample.dists.txt",
-                "star_salmon/deseq2_qc/size_factors",
-                "star_salmon/deseq2_qc/size_factors/RAP1_IAA_30M_REP1.txt",
-                "star_salmon/deseq2_qc/size_factors/RAP1_UNINDUCED_REP1.txt",
-                "star_salmon/deseq2_qc/size_factors/RAP1_UNINDUCED_REP2.txt",
-                "star_salmon/deseq2_qc/size_factors/WT_REP1.txt",
-                "star_salmon/deseq2_qc/size_factors/WT_REP2.txt",
-                "star_salmon/deseq2_qc/size_factors/deseq2.size_factors.RData",
                 "star_salmon/dupradar",
                 "star_salmon/dupradar/box_plot",
                 "star_salmon/dupradar/box_plot/RAP1_IAA_30M_REP1_duprateExpBoxplot.pdf",

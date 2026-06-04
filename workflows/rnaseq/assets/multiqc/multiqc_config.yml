@@ -51,21 +51,6 @@ report_section_order:
     order: 2000
   kallisto:
     order: 2000
-  # Post-quantification QC
-  sample-relationships:
-    order: 1006
-  star_salmon_deseq2_pca:
-    order: 1005
-  star_salmon_deseq2_clustering:
-    order: 1004
-  salmon_deseq2_pca:
-    order: 1003
-  salmon_deseq2_clustering:
-    order: 1002
-  star_rsem_deseq2_pca:
-    order: 1001
-  star_rsem_deseq2_clustering:
-    order: 1000
   # Summaries
   "nf-core-rnaseq-methods-description-module":
     order: -1000

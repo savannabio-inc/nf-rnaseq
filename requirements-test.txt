@@ -1,0 +1,4 @@
+# Python deps for nf-rnaseq tests (snapshot diffs).
+# nf-test and Nextflow are installed into .venv-test/bin by scripts/setup-test-venv.sh.
+
+pdiff>=0.1.0

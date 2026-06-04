@@ -16,6 +16,28 @@ You will need to create a samplesheet with information about the samples you wou
 --input '[path to samplesheet file]'
 ```
 
+### Direct FASTQ input (single sample)
+
+For a single sample you can pass FASTQ paths directly instead of a samplesheet. No CSV file is created. Provide `--fastq_1` and `--sample`; add `--fastq_2` for paired-end or omit it for single-end. Use `--input_strandedness` (default `auto`) as you would in the samplesheet `strandedness` column.
+
+**Paired-end:**
+
+```bash
+--fastq_1 /path/to/sample_R1.fastq.gz \
+--fastq_2 /path/to/sample_R2.fastq.gz \
+--sample MY_SAMPLE \
+--input_strandedness auto
+```
+
+**Single-end:**
+
+```bash
+--fastq_1 /path/to/sample.fastq.gz \
+--sample MY_SAMPLE
+```
+
+You cannot use `--input` together with `--fastq_1` / `--sample`.
+
 ### Multiple runs of the same sample
 
 The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across 3 lanes.

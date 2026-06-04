@@ -1,8 +1,6 @@
 reports:
   multiqc_report.html:
     display: "MultiQC HTML report"
-  "**/star_salmon/**/deseq2.plots.pdf":
-    display: "All samples STAR Salmon DESeq2 QC PDF plots"
   "**/star_salmon/salmon.merged.gene_counts.tsv":
     display: "All samples STAR Salmon merged gene raw counts"
   "**/star_salmon/salmon.merged.gene_lengths.tsv":
@@ -15,8 +13,6 @@ reports:
     display: "All samples STAR Salmon merged transcript raw counts"
   "**/star_salmon/salmon.merged.transcript_tpm.tsv":
     display: "All samples STAR Salmon merged transcript TPM counts"
-  "**/salmon/**/deseq2.plots.pdf":
-    display: "All samples Salmon DESeq2 QC PDF plots"
   "**/salmon/salmon.merged.gene_counts.tsv":
     display: "All samples Salmon merged gene raw counts"
   "**/salmon/salmon.merged.gene_lengths.tsv":
@@ -29,8 +25,6 @@ reports:
     display: "All samples Salmon merged transcript raw counts"
   "**/salmon/salmon.merged.transcript_tpm.tsv":
     display: "All samples Salmon merged transcript TPM counts"
-  "**/kallisto/**/deseq2.plots.pdf":
-    display: "All samples Kallisto DESeq2 QC PDF plots"
   "**/kallisto/kallisto.merged.gene_counts.tsv":
     display: "All samples Kallisto merged gene raw counts"
   "**/kallisto/kallisto.merged.gene_lengths.tsv":
@@ -43,8 +37,6 @@ reports:
     display: "All samples Kallisto merged transcript raw counts"
   "**/kallisto/kallisto.merged.transcript_tpm.tsv":
     display: "All samples Kallisto merged transcript TPM counts"
-  "**/star_rsem/**/deseq2.plots.pdf":
-    display: "All samples STAR RSEM DESeq2 QC PDF plots"
   "**/star_rsem/rsem.merged.gene_counts.tsv":
     display: "All samples STAR RSEM merged gene raw counts"
   "**/star_rsem/rsem.merged.gene_tpm.tsv":

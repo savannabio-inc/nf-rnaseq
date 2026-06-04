@@ -99,7 +99,9 @@ workflow NFCORE_RNASEQ {
     //
     // WORKFLOW: Run nf-core/rnaseq workflow
     //
-    ch_samplesheet = Channel.value(file(params.input, checkIfExists: true))
+    ch_samplesheet = params.input
+        ? Channel.value(file(params.input, checkIfExists: true))
+        : Channel.empty()
     RNASEQ (
         ch_samplesheet,
         ch_versions,

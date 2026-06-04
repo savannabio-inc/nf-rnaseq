@@ -51,7 +51,6 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
     - [dupRadar](#dupradar)
     - [Preseq](#preseq)
     - [featureCounts](#featurecounts)
-    - [DESeq2](#deseq2)
     - [Kraken2/Bracken](#kraken2bracken)
     - [MultiQC](#multiqc)
   - [Pseudoalignment and quantification](#pseudoalignment-and-quantification)
@@ -639,48 +638,6 @@ The [Preseq](http://smithlabresearch.org/software/preseq/) package is aimed at p
 [featureCounts](http://bioinf.wehi.edu.au/featureCounts/) from the [Subread](http://subread.sourceforge.net/) package is a quantification tool used to summarise the mapped read distribution over genomic features such as genes, exons, promotors, gene bodies, genomic bins and chromosomal locations. We can also use featureCounts to count overlaps with different classes of genomic features. This provides an additional QC to check which features are most abundant in the sample, and to highlight potential problems such as rRNA contamination.
 
 ![MultiQC - featureCounts biotypes plot](images/mqc_featurecounts_biotype.png)
-
-### DESeq2
-
-<details markdown="1">
-<summary>Output files</summary>
-
-- `<ALIGNER/PSEUDOALIGNER>/deseq2_qc/`
-  - `*.plots.pdf`: File containing PCA and hierarchical clustering plots.
-  - `*.dds.RData`: File containing R `DESeqDataSet` object generated
-    by DESeq2, with either an rlog or vst `assay` storing the
-    variance-stabilised data.
-  - `*.rds`: Alternative version of the RData file suitable for
-    `readRDS` to give user control of the eventual object name.
-  - `*pca.vals.txt`: Matrix of values for the first 2 principal components.
-  - `*sample.dists.txt`: Sample distance matrix.
-  - `R_sessionInfo.log`: File containing information about R, the OS and attached or loaded packages.
-- `<ALIGNER/PSEUDOALIGNER>/deseq2_qc/size_factors/`
-  - `*.txt`, `*.RData`: Files containing DESeq2 sizeFactors per sample.
-
-</details>
-
-[DESeq2](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) is one of the most commonly used software packages to perform differential expression analysis for RNA-seq datasets.
-
-**This pipeline uses a standardised DESeq2 analysis script to get an idea of the reproducibility across samples within the experiment. Please note that this will not suit every experimental design, and if there are other problems with the experiment then it may not work as well as expected.**
-
-The script included in the pipeline uses DESeq2 to normalise read counts across all of the provided samples in order to create a PCA plot and a clustered heatmap showing pairwise Euclidean distances between the samples in the experiment. These help to show the similarity between groups of samples and can reveal batch effects and other potential issues with the experiment.
-
-By default, the pipeline uses the `vst` transformation which is more suited to larger experiments. You can set the parameter `--deseq2_vst false` if you wish to use the DESeq2 native `rlog` option. See [DESeq2 docs](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization) for a more detailed explanation.
-
-Both types of transformation are performed blind, i.e. using across-all-samples variability, without using any prior information on experimental groups (equivalent to using an intercept-only design), as recommended by the [DESeq2 docs](https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#blind-dispersion-estimation).
-
-The PCA plots are generated based alternately on the top five hundred most variable genes, or all genes. The former is the conventional approach that is more likely to pick up strong effects (ie the biological signal) and the latter, when different, is picking up a weaker but consistent effect that is synchronised across many transcripts. We project both of these onto the first two PCs (shown in the top row of the figure below), which is the best two dimensional representation of the variation between samples.
-
-We also explore higher components in terms of experimental factors inferred from sample names. If your sample naming convention follows a strict policy of using underscores to delimit values of experimental factors (for example `WT_UNTREATED_REP1`) and all names have the same number of underscores (so excluding `WT_TREATED_10ml_REP1` from being compatible with the previous label), then any of these factors that are informative (ie label some but not all samples the same) then we individually plot upto the first five PCs, per experimental level, for each of the experimental factors.
-
-The plot on the left hand side shows the standard PC plot - notice the variable number of underscores, meaning that the central plot would not be produced: here we have changed the underscore that is hyphenating the treatment to a '-' character. This allows the central plot to be generated, and we can see that replicate (the 2nd part of the sample name) seems to be affecting the 3rd principal component, but the treatment factor is affecting the more important first two components. The right-most plot shows all pairwise euclidean distances between the samples.
-
-<p align="center"><img src="images/deseq2_qc_plots.png" alt="DESeq2 PCA plots"></p>
-
-![MultiQC - DESeq2 PCA plot](images/mqc_deseq2_pca.png)
-
-<p align="center"><img src="images/mqc_deseq2_clustering.png" alt="MultiQC - DESeq2 sample similarity plot" width="600"></p>
 
 ### Kraken2/Bracken
 

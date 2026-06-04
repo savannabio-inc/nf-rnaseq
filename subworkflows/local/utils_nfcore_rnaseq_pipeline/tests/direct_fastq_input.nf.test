@@ -1,0 +1,112 @@
+nextflow_function {
+
+    name "Direct FASTQ input functions"
+    script "../main.nf"
+    test("Test Function validateDirectFastqInput success paired-end") {
+
+        function "validateDirectFastqInput"
+
+        when {
+            params {
+                sample               = "test_sample"
+                fastq_1              = "s3://ngi-igenomes/testdata/nf-core/modules/genomics/sarscov2/illumina/fastq/test_1.fastq.gz"
+                fastq_2              = "s3://ngi-igenomes/testdata/nf-core/modules/genomics/sarscov2/illumina/fastq/test_2.fastq.gz"
+                input_strandedness   = 'auto'
+            }
+        }
+
+        then {
+            assert function.success
+        }
+
+    }
+
+    test("Test Function validateDirectFastqInput success single-end") {
+
+        function "validateDirectFastqInput"
+
+        when {
+            params {
+                sample               = "test_sample"
+                fastq_1              = "s3://ngi-igenomes/testdata/nf-core/modules/genomics/sarscov2/illumina/fastq/test_1.fastq.gz"
+                fastq_2              = null
+                input_strandedness   = 'forward'
+            }
+        }
+
+        then {
+            assert function.success
+        }
+
+    }
+
+    test("Test Function validateInputModes rejects both input modes") {
+
+        function "validateInputModes"
+
+        when {
+            params {
+                input   = "samplesheet.csv"
+                fastq_1 = "test_1.fastq.gz"
+                sample  = "test_sample"
+            }
+        }
+
+        then {
+            assert !function.success
+        }
+
+    }
+
+    test("Test Function validateInputModes rejects fastq_2 without fastq_1") {
+
+        function "validateInputModes"
+
+        when {
+            params {
+                input   = null
+                fastq_2 = "test_2.fastq.gz"
+                sample  = "test_sample"
+            }
+        }
+
+        then {
+            assert !function.success
+        }
+
+    }
+
+    test("Test Function getInputSamplesList direct single-end") {
+
+        function "getInputSamplesList"
+
+        when {
+            params {
+                input                = null
+                sample               = "test_sample"
+                fastq_1              = "s3://ngi-igenomes/testdata/nf-core/modules/genomics/sarscov2/illumina/fastq/test_1.fastq.gz"
+                fastq_2              = null
+                input_strandedness   = 'auto'
+            }
+            function {
+                """
+                def project_dir = new File('${baseDir}').absoluteFile.parentFile.parentFile.parentFile.parentFile
+                input[0] = project_dir.toString()
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.size() == 1 },
+                { assert function.result[0][0].id == 'test_sample' },
+                { assert function.result[0][0].strandedness == 'auto' },
+                { assert function.result[0][1].toString().endsWith('.fastq.gz') },
+                { assert function.result[0][2] == null }
+            )
+        }
+
+    }
+
+}

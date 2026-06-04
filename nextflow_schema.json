@@ -10,7 +10,7 @@
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": ["input", "outdir"],
+            "required": ["outdir"],
             "properties": {
                 "input": {
                     "type": "string",
@@ -20,8 +20,39 @@
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 4 columns, and a header row. See [usage docs](https://nf-co.re/rnaseq/usage#samplesheet-input).",
+                    "help_text": "Use this for multi-sample experiments, or use --fastq_1 and --sample (and optionally --fastq_2) for a single sample without a samplesheet. It has to be a comma-separated file with 4 columns and a header row. See [usage docs](https://nf-co.re/rnaseq/usage#samplesheet-input).",
                     "fa_icon": "fas fa-file-csv"
+                },
+                "fastq_1": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                    "description": "Path to FastQ file for read 1 (direct single-sample input).",
+                    "help_text": "Alternative to --input for one sample. Requires --sample. Use with --fastq_2 for paired-end; omit --fastq_2 for single-end.",
+                    "fa_icon": "fas fa-dna"
+                },
+                "fastq_2": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                    "description": "Path to FastQ file for read 2 (optional, paired-end direct input).",
+                    "fa_icon": "fas fa-dna"
+                },
+                "sample": {
+                    "type": "string",
+                    "pattern": "^\\S+$",
+                    "description": "Sample identifier when using --fastq_1 direct input.",
+                    "help_text": "Required with --fastq_1. Must not contain spaces.",
+                    "fa_icon": "fas fa-vial"
+                },
+                "input_strandedness": {
+                    "type": "string",
+                    "default": "auto",
+                    "enum": ["forward", "reverse", "unstranded", "auto"],
+                    "description": "Library strandedness when using direct FASTQ input.",
+                    "fa_icon": "fas fa-exchange-alt"
                 },
                 "outdir": {
                     "type": "string",
@@ -552,13 +583,6 @@
                     "description": "Extra arguments to pass to the fq lint command.",
                     "fa_icon": "far fa-check-square"
                 },
-                "deseq2_vst": {
-                    "type": "boolean",
-                    "description": "Use vst transformation instead of rlog with DESeq2.",
-                    "help_text": "See [DESeq2 docs](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#data-transformations-and-visualization).",
-                    "fa_icon": "fas fa-dolly",
-                    "default": true
-                },
                 "rseqc_modules": {
                     "type": "string",
                     "default": "bam_stat,inner_distance,infer_experiment,junction_annotation,junction_saturation,read_distribution,read_duplication",
@@ -681,11 +705,6 @@
                     "type": "boolean",
                     "fa_icon": "fas fa-fast-forward",
                     "description": "Skip additional featureCounts process for biotype QC."
-                },
-                "skip_deseq2_qc": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-fast-forward",
-                    "description": "Skip DESeq2 PCA and heatmap plotting."
                 },
                 "skip_multiqc": {
                     "type": "boolean",
